@@ -3,13 +3,18 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Cycling Weather Advisor API - Korean market weather proxy
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: weather
+    description: Weather proxy endpoints
+  - name: cycling
+    description: Cycling advisor endpoints
+
 paths:
   /healthz:
     get:
@@ -24,6 +29,96 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /weather/current:
+    get:
+      operationId: getWeatherCurrent
+      tags: [weather]
+      summary: Get current weather from all providers
+      description: Fetches current weather from OpenWeather, WeatherAPI, and Open-Meteo in parallel
+      parameters:
+        - name: cityId
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/CityId"
+          description: City identifier
+      responses:
+        "200":
+          description: Aggregated weather data from all providers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeatherResponse"
+        "400":
+          description: Invalid city or parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: All providers unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /weather/forecast:
+    get:
+      operationId: getWeatherForecast
+      tags: [weather]
+      summary: Get 3-day forecast from all providers
+      description: Fetches 3-day forecast from OpenWeather, WeatherAPI, and Open-Meteo in parallel
+      parameters:
+        - name: cityId
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/CityId"
+          description: City identifier
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 3
+            default: 3
+          description: Number of forecast days (1-3)
+      responses:
+        "200":
+          description: 3-day forecast data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForecastResponse"
+        "400":
+          description: Invalid city or parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: All providers unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /weather/cities:
+    get:
+      operationId: getCities
+      tags: [weather]
+      summary: Get list of supported cities
+      description: Returns all 8 supported Korean cities with their metadata
+      responses:
+        "200":
+          description: List of supported cities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CitiesResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +129,232 @@ components:
       required:
         - status
 
+    CityId:
+      type: string
+      enum:
+        - seoul
+        - busan
+        - incheon
+        - daegu
+        - gwangju
+        - daejeon
+        - ulsan
+        - jeju
+
+    City:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/CityId"
+        name_ko:
+          type: string
+        name_en:
+          type: string
+        lat:
+          type: number
+        lon:
+          type: number
+      required:
+        - id
+        - name_ko
+        - name_en
+        - lat
+        - lon
+
+    CitiesResponse:
+      type: object
+      properties:
+        cities:
+          type: array
+          items:
+            $ref: "#/components/schemas/City"
+      required:
+        - cities
+
+    WeatherCondition:
+      type: string
+      enum:
+        - clear
+        - partly_cloudy
+        - cloudy
+        - overcast
+        - drizzle
+        - light_rain
+        - moderate_rain
+        - heavy_rain
+        - thunderstorm
+        - snow
+        - blizzard
+        - fog
+        - haze
+        - extreme
+
+    NormalizedWeather:
+      type: object
+      properties:
+        temp:
+          type: number
+        feels_like:
+          type: number
+        temp_max:
+          type: number
+        temp_min:
+          type: number
+        humidity:
+          type: number
+        pressure:
+          type: number
+        wind_speed:
+          type: number
+        wind_deg:
+          type: number
+        condition:
+          $ref: "#/components/schemas/WeatherCondition"
+        precip_mm:
+          type: number
+        precip_prob:
+          type: number
+        uv_index:
+          type: number
+          nullable: true
+        visibility:
+          type: number
+          nullable: true
+      required:
+        - temp
+        - feels_like
+        - temp_max
+        - temp_min
+        - humidity
+        - pressure
+        - wind_speed
+        - wind_deg
+        - condition
+        - precip_mm
+        - precip_prob
+        - uv_index
+        - visibility
+
+    ConfidenceMetrics:
+      type: object
+      properties:
+        temp:
+          type: number
+        wind:
+          type: number
+        humidity:
+          type: number
+        overall:
+          type: number
+      required:
+        - temp
+        - wind
+        - humidity
+        - overall
+
+    ProviderWeatherData:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [openweather, weatherapi, openmeteo]
+        data:
+          $ref: "#/components/schemas/NormalizedWeather"
+        error:
+          type: string
+          nullable: true
+      required:
+        - provider
+        - data
+        - error
+
+    WeatherResponse:
+      type: object
+      properties:
+        weather:
+          $ref: "#/components/schemas/NormalizedWeather"
+        confidence:
+          $ref: "#/components/schemas/ConfidenceMetrics"
+        providers_used:
+          type: array
+          items:
+            type: string
+        providers_failed:
+          type: array
+          items:
+            type: string
+        incomplete_data:
+          type: boolean
+        cached_at:
+          type: string
+          nullable: true
+        provider_data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProviderWeatherData"
+      required:
+        - weather
+        - confidence
+        - providers_used
+        - providers_failed
+        - incomplete_data
+        - cached_at
+        - provider_data
+
+    ForecastDay:
+      type: object
+      properties:
+        date:
+          type: string
+        weather:
+          $ref: "#/components/schemas/NormalizedWeather"
+      required:
+        - date
+        - weather
+
+    ForecastResponse:
+      type: object
+      properties:
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/ForecastDay"
+        providers_used:
+          type: array
+          items:
+            type: string
+        providers_failed:
+          type: array
+          items:
+            type: string
+        incomplete_data:
+          type: boolean
+        cached_at:
+          type: string
+          nullable: true
+      required:
+        - days
+        - providers_used
+        - providers_failed
+        - incomplete_data
+        - cached_at
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            provider:
+              type: string
+              nullable: true
+          required:
+            - code
+            - message
+            - provider
+      required:
+        - error

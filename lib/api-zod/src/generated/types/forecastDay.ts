@@ -5,7 +5,9 @@
  * Cycling Weather Advisor API - Korean market weather proxy
  * OpenAPI spec version: 0.1.0
  */
+import type { NormalizedWeather } from "./normalizedWeather";
 
-export interface HealthStatus {
-  status: string;
+export interface ForecastDay {
+  date: string;
+  weather: NormalizedWeather;
 }

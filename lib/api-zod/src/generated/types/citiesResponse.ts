@@ -5,7 +5,8 @@
  * Cycling Weather Advisor API - Korean market weather proxy
  * OpenAPI spec version: 0.1.0
  */
+import type { City } from "./city";
 
-export interface HealthStatus {
-  status: string;
+export interface CitiesResponse {
+  cities: City[];
 }
