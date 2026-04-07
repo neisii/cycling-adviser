@@ -13,6 +13,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "24"
       - key: PORT
         value: 10000
       - key: WEATHER_PROXY_API_KEY
