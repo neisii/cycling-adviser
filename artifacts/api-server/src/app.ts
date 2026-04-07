@@ -43,7 +43,12 @@ const frontendDist = path.resolve(
 
 app.use(express.static(frontendDist));
 
-app.use((_req, res) => {
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
+app.use((req, res, next) => {
+  if (req.method !== "GET") return next();
   res.sendFile(path.join(frontendDist, "index.html"));
 });
 
