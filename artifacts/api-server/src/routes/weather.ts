@@ -466,10 +466,24 @@ async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT_MS): Prom
 // === Provider Fetchers (current) ===
 
 const WEATHER_PROXY_BASE = "https://weather-proxy.neisii.workers.dev";
+const WEATHER_PROXY_API_KEY = process.env["WEATHER_PROXY_API_KEY"] ?? "";
+
+async function fetchProxy(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, {
+      signal: controller.signal,
+      headers: { "X-API-Key": WEATHER_PROXY_API_KEY },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function fetchOpenWeatherCurrent(cityId: string): Promise<NormalizedWeather> {
   const url = `${WEATHER_PROXY_BASE}/api/openweather/current?city=${cityId}`;
-  const res = await fetchWithTimeout(url);
+  const res = await fetchProxy(url);
   if (!res.ok) throw new Error(`OpenWeather ${res.status}`);
   const data = await res.json();
   return normalizeOpenWeatherCurrent(data);
@@ -477,7 +491,7 @@ async function fetchOpenWeatherCurrent(cityId: string): Promise<NormalizedWeathe
 
 async function fetchWeatherAPICurrent(cityId: string): Promise<NormalizedWeather> {
   const url = `${WEATHER_PROXY_BASE}/api/weatherapi/current?city=${cityId}`;
-  const res = await fetchWithTimeout(url);
+  const res = await fetchProxy(url);
   if (!res.ok) throw new Error(`WeatherAPI ${res.status}`);
   const data = await res.json();
   return normalizeWeatherAPICurrent(data);
@@ -485,7 +499,7 @@ async function fetchWeatherAPICurrent(cityId: string): Promise<NormalizedWeather
 
 async function fetchOpenMeteoCurrent(lat: number, lon: number): Promise<NormalizedWeather> {
   const url = `${WEATHER_PROXY_BASE}/api/openmeteo?lat=${lat}&lon=${lon}`;
-  const res = await fetchWithTimeout(url);
+  const res = await fetchProxy(url);
   if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
   const data = await res.json();
   return normalizeOpenMeteoCurrent(data);
@@ -495,7 +509,7 @@ async function fetchOpenMeteoCurrent(lat: number, lon: number): Promise<Normaliz
 
 async function fetchOpenWeatherForecast(cityId: string): Promise<NormalizedWeather[]> {
   const url = `${WEATHER_PROXY_BASE}/api/openweather/forecast?city=${cityId}`;
-  const res = await fetchWithTimeout(url);
+  const res = await fetchProxy(url);
   if (!res.ok) throw new Error(`OpenWeather forecast ${res.status}`);
   const data = await res.json();
   return [0, 1, 2].map((i) => normalizeOpenWeatherForecast(data, i));
@@ -503,7 +517,7 @@ async function fetchOpenWeatherForecast(cityId: string): Promise<NormalizedWeath
 
 async function fetchWeatherAPIForecast(cityId: string): Promise<NormalizedWeather[]> {
   const url = `${WEATHER_PROXY_BASE}/api/weatherapi/forecast?city=${cityId}`;
-  const res = await fetchWithTimeout(url);
+  const res = await fetchProxy(url);
   if (!res.ok) throw new Error(`WeatherAPI forecast ${res.status}`);
   const data = await res.json();
   return [0, 1, 2].map((i) => normalizeWeatherAPIForecast(data, i));
