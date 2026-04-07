@@ -373,33 +373,31 @@ function normalizeOpenMeteoCurrent(raw: unknown): NormalizedWeather {
   const r = raw as {
     current: {
       temperature_2m: number;
-      apparent_temperature: number;
+      apparent_temperature?: number;
       relative_humidity_2m: number;
-      surface_pressure: number;
+      surface_pressure?: number;
       wind_speed_10m: number;
-      wind_direction_10m: number;
+      wind_direction_10m?: number;
       weather_code: number;
-      precipitation: number;
+      precipitation?: number;
       visibility?: number;
       uv_index?: number;
-    };
-    hourly?: {
-      uv_index?: number[];
     };
   };
   const wmo = r.current.weather_code;
   const condition: WeatherCondition = WMO_MAP[wmo] ?? "cloudy";
+  const temp = r.current.temperature_2m;
   return {
-    temp: r.current.temperature_2m,
-    feels_like: r.current.apparent_temperature,
-    temp_max: r.current.temperature_2m,
-    temp_min: r.current.temperature_2m,
+    temp,
+    feels_like: r.current.apparent_temperature ?? temp,
+    temp_max: temp,
+    temp_min: temp,
     humidity: r.current.relative_humidity_2m,
-    pressure: r.current.surface_pressure,
+    pressure: r.current.surface_pressure ?? 1013,
     wind_speed: r.current.wind_speed_10m,
-    wind_deg: r.current.wind_direction_10m,
+    wind_deg: r.current.wind_direction_10m ?? 0,
     condition,
-    precip_mm: r.current.precipitation,
+    precip_mm: r.current.precipitation ?? 0,
     precip_prob: 0,
     uv_index: r.current.uv_index ?? null,
     visibility: r.current.visibility ?? null,
@@ -467,21 +465,18 @@ async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT_MS): Prom
 
 // === Provider Fetchers (current) ===
 
-const OPENWEATHER_KEY = process.env["OPENWEATHER_API_KEY"];
-const WEATHERAPI_KEY = process.env["WEATHERAPI_KEY"];
+const WEATHER_PROXY_BASE = "https://weather-proxy.neisii.workers.dev";
 
-async function fetchOpenWeatherCurrent(lat: number, lon: number): Promise<NormalizedWeather> {
-  if (!OPENWEATHER_KEY) throw new Error("OPENWEATHER_API_KEY not configured");
-  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_KEY}&units=metric&lang=kr`;
+async function fetchOpenWeatherCurrent(cityId: string): Promise<NormalizedWeather> {
+  const url = `${WEATHER_PROXY_BASE}/api/openweather/current?city=${cityId}`;
   const res = await fetchWithTimeout(url);
   if (!res.ok) throw new Error(`OpenWeather ${res.status}`);
   const data = await res.json();
   return normalizeOpenWeatherCurrent(data);
 }
 
-async function fetchWeatherAPICurrent(lat: number, lon: number): Promise<NormalizedWeather> {
-  if (!WEATHERAPI_KEY) throw new Error("WEATHERAPI_KEY not configured");
-  const url = `https://api.weatherapi.com/v1/current.json?key=${WEATHERAPI_KEY}&q=${lat},${lon}&aqi=no`;
+async function fetchWeatherAPICurrent(cityId: string): Promise<NormalizedWeather> {
+  const url = `${WEATHER_PROXY_BASE}/api/weatherapi/current?city=${cityId}`;
   const res = await fetchWithTimeout(url);
   if (!res.ok) throw new Error(`WeatherAPI ${res.status}`);
   const data = await res.json();
@@ -489,13 +484,7 @@ async function fetchWeatherAPICurrent(lat: number, lon: number): Promise<Normali
 }
 
 async function fetchOpenMeteoCurrent(lat: number, lon: number): Promise<NormalizedWeather> {
-  const params = [
-    `latitude=${lat}`,
-    `longitude=${lon}`,
-    `timezone=Asia%2FSeoul`,
-    `current=temperature_2m,apparent_temperature,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,weather_code,precipitation,visibility,uv_index`,
-  ].join("&");
-  const url = `https://api.open-meteo.com/v1/forecast?${params}`;
+  const url = `${WEATHER_PROXY_BASE}/api/openmeteo?lat=${lat}&lon=${lon}`;
   const res = await fetchWithTimeout(url);
   if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
   const data = await res.json();
@@ -504,18 +493,16 @@ async function fetchOpenMeteoCurrent(lat: number, lon: number): Promise<Normaliz
 
 // === Provider Fetchers (forecast) ===
 
-async function fetchOpenWeatherForecast(lat: number, lon: number): Promise<NormalizedWeather[]> {
-  if (!OPENWEATHER_KEY) throw new Error("OPENWEATHER_API_KEY not configured");
-  const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_KEY}&units=metric&lang=kr&cnt=24`;
+async function fetchOpenWeatherForecast(cityId: string): Promise<NormalizedWeather[]> {
+  const url = `${WEATHER_PROXY_BASE}/api/openweather/forecast?city=${cityId}`;
   const res = await fetchWithTimeout(url);
   if (!res.ok) throw new Error(`OpenWeather forecast ${res.status}`);
   const data = await res.json();
   return [0, 1, 2].map((i) => normalizeOpenWeatherForecast(data, i));
 }
 
-async function fetchWeatherAPIForecast(lat: number, lon: number): Promise<NormalizedWeather[]> {
-  if (!WEATHERAPI_KEY) throw new Error("WEATHERAPI_KEY not configured");
-  const url = `https://api.weatherapi.com/v1/forecast.json?key=${WEATHERAPI_KEY}&q=${lat},${lon}&days=3&aqi=no`;
+async function fetchWeatherAPIForecast(cityId: string): Promise<NormalizedWeather[]> {
+  const url = `${WEATHER_PROXY_BASE}/api/weatherapi/forecast?city=${cityId}`;
   const res = await fetchWithTimeout(url);
   if (!res.ok) throw new Error(`WeatherAPI forecast ${res.status}`);
   const data = await res.json();
@@ -716,8 +703,8 @@ router.get("/weather/current", async (req, res): Promise<void> => {
   req.log.info({ cityId: city.id, lat: city.lat, lon: city.lon }, "Fetching current weather from providers");
 
   const [owResult, waResult, omResult] = await Promise.allSettled([
-    fetchOpenWeatherCurrent(city.lat, city.lon),
-    fetchWeatherAPICurrent(city.lat, city.lon),
+    fetchOpenWeatherCurrent(city.id),
+    fetchWeatherAPICurrent(city.id),
     fetchOpenMeteoCurrent(city.lat, city.lon),
   ]);
 
@@ -783,8 +770,8 @@ router.get("/weather/forecast", async (req, res): Promise<void> => {
   req.log.info({ cityId: city.id, lat: city.lat, lon: city.lon, days }, "Fetching forecast from providers");
 
   const [owResult, waResult, omResult] = await Promise.allSettled([
-    fetchOpenWeatherForecast(city.lat, city.lon),
-    fetchWeatherAPIForecast(city.lat, city.lon),
+    fetchOpenWeatherForecast(city.id),
+    fetchWeatherAPIForecast(city.id),
     fetchOpenMeteoForecast(city.lat, city.lon),
   ]);
 
