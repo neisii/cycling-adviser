@@ -450,6 +450,30 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      <footer className="mt-8 pb-6 text-center text-xs text-muted-foreground space-y-1">
+        <p className="font-medium text-foreground/70">Cycling Adviser · Ver 1.0</p>
+        <p>
+          created by{" "}
+          <a
+            href="https://github.com/neisii"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-foreground transition-colors"
+          >
+            @neisii
+          </a>
+        </p>
+        <p>
+          Bug reports &amp; inquiries:{" "}
+          <a
+            href="mailto:neisii@outlook.com"
+            className="underline underline-offset-2 hover:text-foreground transition-colors"
+          >
+            neisii@outlook.com
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }

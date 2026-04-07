@@ -108,3 +108,13 @@ render.yaml            Render Blueprint for one-click deployment
 | UV index | < 8 | –10 pts |
 
 Thunderstorms, blizzards, and other extreme conditions override the score to 0 (위험).
+
+---
+
+## Credits
+
+**Cycling Adviser · Ver 1.0**
+
+Created by [@neisii](https://github.com/neisii)
+
+Bug reports & inquiries: neisii@outlook.com
