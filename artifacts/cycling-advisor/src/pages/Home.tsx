@@ -159,7 +159,7 @@ export default function Home() {
       </main>
 
       <footer className="mt-8 pb-6 text-center text-xs text-muted-foreground space-y-1">
-        <p className="font-medium text-foreground/70">Cycling Adviser · Ver 1.0</p>
+        <p className="font-medium text-foreground/70">Cycling Adviser · Ver 1.0.1</p>
         <p>
           created by{" "}
           <a

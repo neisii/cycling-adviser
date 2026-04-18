@@ -93,9 +93,22 @@ Thunderstorms, blizzards, and other extreme conditions override the score to 0 (
 
 ---
 
+## Release Notes
+
+### v1.0.1
+- Removed unused domain and API layers (`domains/`, `features/weather/api/index.ts`)
+- Flattened unnecessary single-line abstractions
+- Improved internal architecture clarity; no `domains/` layer remains
+- No functional or UI changes
+
+### v1.0.0
+- Initial release
+
+---
+
 ## Credits
 
-**Cycling Adviser · Ver 1.0**
+**Cycling Adviser · Ver 1.0.1**
 
 Created by [@neisii](https://github.com/neisii)
 
