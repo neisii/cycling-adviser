@@ -1,10 +1,11 @@
 import { VERDICT_COLORS } from "@/lib/verdictColors";
-import { WeatherIcon } from "./WeatherIcon";
+import { WeatherIcon } from "@/components/WeatherIcon";
 import type { CyclingResult } from "@/features/weather/types";
 
 interface ForecastDayCardProps {
   date: string;
   isToday: boolean;
+  isActive?: boolean;
   /** Pre-computed cycling score — obtained from useCyclingScore / useScoredForecast in the page layer */
   result: CyclingResult;
   condition: string;
@@ -15,6 +16,7 @@ interface ForecastDayCardProps {
 export function ForecastDayCard({
   date,
   isToday,
+  isActive = false,
   result,
   condition,
   tempMin,
@@ -28,7 +30,9 @@ export function ForecastDayCard({
 
   return (
     <div
-      className={`p-4 rounded-xl border ${colors.border} ${colors.bg} transition-all`}
+      className={`p-4 rounded-xl border transition-all ${colors.border} ${colors.bg} ${
+        isActive ? "ring-2 ring-primary shadow-md" : "opacity-75 hover:opacity-100"
+      }`}
       data-testid={`forecast-day-${date}`}
     >
       <div className="flex items-center justify-between mb-3">
