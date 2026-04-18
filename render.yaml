@@ -1,23 +1,16 @@
 services:
   - type: web
     name: cycling-advisor
-    runtime: node
+    runtime: static
     region: singapore
     plan: free
     buildCommand: >-
       npm install -g pnpm &&
       pnpm install --frozen-lockfile &&
-      BASE_PATH=/ PORT=3000 pnpm --filter @workspace/cycling-advisor run build &&
-      pnpm --filter @workspace/api-server run build
-    startCommand: node --enable-source-maps ./artifacts/api-server/dist/index.mjs
+      pnpm --filter @workspace/cycling-advisor run build
+    staticPublishPath: ./artifacts/cycling-advisor/dist/public
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: NODE_VERSION
         value: "24"
-      - key: PORT
-        value: 10000
-      - key: WEATHER_PROXY_API_KEY
-        sync: false
-      - key: SESSION_SECRET
-        generateValue: true
+      - key: VITE_API_BASE_URL
+        value: https://weather-proxy.neisii.workers.dev
